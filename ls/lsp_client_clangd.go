@@ -42,7 +42,19 @@ func newClangdLSPClient(logger jsonrpc.FunctionLogger, dataFolder *paths.Path, l
 	clangdConf := fmt.Sprintln("Diagnostics:")
 	clangdConf += fmt.Sprintln("  Suppress: [anon_bitfield_qualifiers]")
 	clangdConf += fmt.Sprintln("CompileFlags:")
-	clangdConf += fmt.Sprintln("  Add: -ferror-limit=0")
+	//clangdConf += fmt.Sprintln("  Add: -ferror-limit=0")
+	clangdConf += fmt.Sprintln("  Add: [")
+	clangdConf += fmt.Sprintln("    -ferror-limit=0,")
+	//clangdConf += fmt.Sprintln("    -DARDUINO=186,")
+	//clangdConf += fmt.Sprintln("    -DUSBCON=1,")
+	clangdConf += fmt.Sprintln("    -nostdlib,")
+	clangdConf += fmt.Sprintln("    -nostdinc,")
+	clangdConf += fmt.Sprintln("    -isystem=/home/pi/test/build/sketch/tmp/wow/packages/arduino/tools/avr-gcc/7.3.0-atmel3.6.1-arduino7/avr/include/,")
+	clangdConf += fmt.Sprintln("    -I/home/pi/test/tmp/wow/packages/arduino/tools/avr-gcc/7.3.0-atmel3.6.1-arduino7/avr/include/,")
+	clangdConf += fmt.Sprintln("    -F/home/pi/test/tmp/wow/packages/arduino/tools/avr-gcc/7.3.0-atmel3.6.1-arduino7/avr/include/,")
+	clangdConf += fmt.Sprintln("    -I/home/pi/test/tmp/wow/packages/arduino/tools/avr-gcc/7.3.0-atmel3.6.1-arduino7/lib/gcc/avr/7.3.0/include/,")
+	clangdConf += fmt.Sprintln("    -F/home/pi/test/tmp/wow/packages/arduino/tools/avr-gcc/7.3.0-atmel3.6.1-arduino7/lib/gcc/avr/7.3.0/include/")
+	clangdConf += fmt.Sprintln("  ]")
 	if err := clangdConfFile.WriteFile([]byte(clangdConf)); err != nil {
 		logger.Logf("Error writing clangd configuration: %s", err)
 	}
@@ -52,6 +64,8 @@ func newClangdLSPClient(logger jsonrpc.FunctionLogger, dataFolder *paths.Path, l
 		ls.config.ClangdPath.String(),
 		"-log=verbose",
 		"--pch-storage=memory",
+		//"--enable-config",
+		//"--suggest-missing-includes",
 		fmt.Sprintf(`--compile-commands-dir=%s`, ls.buildPath),
 	}
 	if jobs := ls.config.Jobs; jobs == -1 {
@@ -65,6 +79,7 @@ func newClangdLSPClient(logger jsonrpc.FunctionLogger, dataFolder *paths.Path, l
 	if dataFolder != nil {
 		args = append(args, fmt.Sprintf("-query-driver=%s", dataFolder.Join("packages", "**").Canonical()))
 	}
+    args = append(args, fmt.Sprintf("--function-arg-placeholders=0"))
 
 	logger.Logf("    Starting clangd: %s", strings.Join(args, " "))
 	var clangdStdin io.WriteCloser

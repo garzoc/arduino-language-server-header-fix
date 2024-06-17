@@ -163,9 +163,12 @@ func NewINOLanguageServer(stdin io.Reader, stdout io.Writer, config *Config) *IN
 	logger.Logf("Initial board configuration: %s", ls.config.Fqbn)
 	logger.Logf("%s", globals.VersionInfo.String())
 	logger.Logf("Language server temp directory: %s", ls.tempDir)
+	logger.Logf("### Language server temp directory: %s", ls.tempDir.String())
 	logger.Logf("Language server build path: %s", ls.buildPath)
 	logger.Logf("Language server build sketch root: %s", ls.buildSketchRoot)
 	logger.Logf("Language server FULL build path: %s", ls.fullBuildPath)
+    //os.Link("compile_flags.txt", ls.buildPath.Join("compile_flags.txt").String())
+	//logger.Logf("### Writing to: %s", ls.buildPath.Join("compile_flags.txt").String())
 
 	ls.IDE = NewIDELSPServer(logger, stdin, stdout, ls)
 	ls.progressHandler = newProgressProxy(ls.IDE.conn)
@@ -203,6 +206,8 @@ func (ls *INOLanguageServer) initializeReqFromIDE(ctx context.Context, logger js
 			return
 		}
 
+        //logger.Logf("###Environment donw",)
+
 		if inoCppContent, err := ls.buildSketchCpp.ReadFile(); err == nil {
 			ls.sketchMapper = sourcemapper.CreateInoMapper(inoCppContent)
 			ls.sketchMapper.CppText.Version = 1
@@ -211,12 +216,15 @@ func (ls *INOLanguageServer) initializeReqFromIDE(ctx context.Context, logger js
 			return
 		}
 
+        //logger.Logf("### Readfile ",)
+
 		// Retrieve data folder
 		dataFolder, err := ls.extractDataFolderFromArduinoCLI(logger)
 		if err != nil {
-			logger.Logf("error retrieving data folder from arduino-cli: %s", err)
+			//logger.Logf("### error retrieving data folder from arduino-cli: ")
 			return
 		}
+        //logger.Logf("###Extracted data folder from arduino ",)
 
 		// Start clangd
 		ls.Clangd = newClangdLSPClient(logger, dataFolder, ls)
@@ -226,6 +234,7 @@ func (ls *INOLanguageServer) initializeReqFromIDE(ctx context.Context, logger js
 			logger.Logf("Lost connection with clangd!")
 			ls.Close()
 		}()
+        //logger.Logf("###Client created ",)
 
 		// Send initialization command to clangd (1 sec. timeout)
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -1462,7 +1471,7 @@ func (ls *INOLanguageServer) extractDataFolderFromArduinoCLI(logger jsonrpc.Func
 		}
 		cmdOutput := &bytes.Buffer{}
 		cmd.RedirectStdoutTo(cmdOutput)
-		logger.Logf("running: %s", strings.Join(args, " "))
+		//logger.Logf("### running: %s", strings.Join(args, " "))
 		if err := cmd.Run(); err != nil {
 			return nil, errors.Errorf("running %s: %s", strings.Join(args, " "), err)
 		}
@@ -1473,7 +1482,9 @@ func (ls *INOLanguageServer) extractDataFolderFromArduinoCLI(logger jsonrpc.Func
 			} `json:"directories"`
 		}
 		var res cmdRes
+        //logger.Logf("### parsing -> %s", cmdOutput.String())
 		if err := json.Unmarshal(cmdOutput.Bytes(), &res); err != nil {
+            //logger.Logf("### parser errors -> %s", dataDir)
 			return nil, errors.Errorf("parsing arduino-cli output: %s", err)
 		}
 		// Return only the build path
@@ -1481,7 +1492,8 @@ func (ls *INOLanguageServer) extractDataFolderFromArduinoCLI(logger jsonrpc.Func
 		dataDir = res.Directories.Data
 	}
 
-	dataDirPath := paths.New(dataDir)
+	dataDirPath := paths.New("/tmp/wow")
+    //logger.Logf("### return home -> %s", dataDir)
 	return dataDirPath.Canonical(), nil
 }
 
